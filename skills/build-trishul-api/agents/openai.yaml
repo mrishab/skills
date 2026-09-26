@@ -1,0 +1,3 @@
+interface:
+  display_name: "Build Trishul Api"
+  short_description: "Standardized workflow for creating new domain APIs within the Trishul framework, following the trishul-user module..."

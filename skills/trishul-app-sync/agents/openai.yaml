@@ -1,0 +1,3 @@
+interface:
+  display_name: "Trishul App Sync"
+  short_description: "Synchronizes backend and frontend by running the backend build, generating openapi.json, and then building the..."

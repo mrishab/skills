@@ -1,0 +1,3 @@
+interface:
+  display_name: "Loc Fitness"
+  short_description: "Enforces a hard 60-line cap on frontend React components (non-auto-generated). Use when frontend/src files grow too..."

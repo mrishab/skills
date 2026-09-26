@@ -80,6 +80,9 @@ npx skills add mrishab/skills
 | :--- | :--- | :--- |
 | **[`mobile-native-feel`](./skills/mobile-native-feel/SKILL.md)** | CSS/HTML architectural fixes and techniques to make web apps feel native and performant on mobile touchscreens (tap lag, hover states, viewport heights, input zoom, safe areas). | [skills/mobile-native-feel](./skills/mobile-native-feel/) |
 | **[`ai-researcher`](./skills/ai-researcher/SKILL.md)** | Elite AI research paper curation and breakdown. Formulates intuitive, geometrically grounded technical scripts and reviews for advanced AI architectures. | [skills/ai-researcher](./skills/ai-researcher/) |
+| **[`build-trishul-api`](./skills/build-trishul-api/SKILL.md)** | Standardized workflow for creating new domain APIs within the Trishul framework (interfaces, entities, DTOs, mappers, services, controllers, migrations). | [skills/build-trishul-api](./skills/build-trishul-api/) |
+| **[`loc-fitness`](./skills/loc-fitness/SKILL.md)** | Enforces a hard 60-line cap on hand-written frontend React components to keep components clean, single-purpose, and maintainable. | [skills/loc-fitness](./skills/loc-fitness/) |
+| **[`trishul-app-sync`](./skills/trishul-app-sync/SKILL.md)** | Synchronizes backend and frontend by building the backend, generating openapi.json, and generating type-safe TypeScript models & Orval hooks. | [skills/trishul-app-sync](./skills/trishul-app-sync/) |
 
 ---
 
