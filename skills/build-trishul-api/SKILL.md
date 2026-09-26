@@ -1202,7 +1202,7 @@ Create SQL migrations in `trishul-<domain>-service/src/main/resources/db/tenant_
 - Use sequences for primary keys (e.g., `<ENTITY>_SEQUENCE`).
 
 ### 2. Entity Definition
-Create the JPA entity in `trishul-<domain>/src/main/java/io/trishul/<domain>/model/`.
+Create the JPA entity in `trishul-<domain>/src/main/java/sh/trishul/<domain>/model/`.
 - Use JPA annotations: `@Entity`, `@Table(name = "_<entity>")`, `@Id`, `@GeneratedValue(strategy = GenerationType.SEQUENCE)`, `@Version`, `@CreationTimestamp`, `@UpdateTimestamp`.
 
 ### 3. Refresher Pattern

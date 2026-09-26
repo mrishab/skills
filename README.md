@@ -78,17 +78,37 @@ npx skills add mrishab/skills
 
 | Skill | Description | Location |
 | :--- | :--- | :--- |
-| **[`mobile-native-feel`](./skills/mobile-native-feel/SKILL.md)** | CSS/HTML architectural fixes and techniques to make web apps feel native and performant on mobile touchscreens (tap lag, hover states, viewport heights, input zoom, safe areas). | [skills/mobile-native-feel](./skills/mobile-native-feel/) |
-| **[`ai-researcher`](./skills/ai-researcher/SKILL.md)** | Elite AI research paper curation and breakdown. Formulates intuitive, geometrically grounded technical scripts and reviews for advanced AI architectures. | [skills/ai-researcher](./skills/ai-researcher/) |
-| **[`build-trishul-api`](./skills/build-trishul-api/SKILL.md)** | Standardized workflow for creating new domain APIs within the Trishul framework (interfaces, entities, DTOs, mappers, services, controllers, migrations). | [skills/build-trishul-api](./skills/build-trishul-api/) |
-| **[`loc-fitness`](./skills/loc-fitness/SKILL.md)** | Enforces a hard 60-line cap on hand-written frontend React components to keep components clean, single-purpose, and maintainable. | [skills/loc-fitness](./skills/loc-fitness/) |
-| **[`fix-mutations`](./skills/fix-mutations/SKILL.md)** | Finds and fixes survived PIT mutation tests across Java/Spring modules in batches of 10 to ensure comprehensive test coverage. | [skills/fix-mutations](./skills/fix-mutations/) |
 | **[`transition-polish`](./skills/transition-polish/SKILL.md)** | Maximizes transition coverage across interactive elements with physics-grounded durations, safe properties, and accessibility rules. | [skills/transition-polish](./skills/transition-polish/) |
 | **[`theme-purity`](./skills/theme-purity/SKILL.md)** | Enforces strict semantic theme architecture, eliminates hardcoded colors, and ensures light/dark parity across UI and widgets. | [skills/theme-purity](./skills/theme-purity/) |
 | **[`ux-copy-fitness`](./skills/ux-copy-fitness/SKILL.md)** | Audits and reduces unnecessary text across an entire web application, enforcing concise, scannable, action-oriented UI copy. | [skills/ux-copy-fitness](./skills/ux-copy-fitness/) |
 | **[`react-declarative-purity`](./skills/react-declarative-purity/SKILL.md)** | Audits and eliminates direct DOM manipulation anti-patterns, enforcing React's declarative state-driven paradigm. | [skills/react-declarative-purity](./skills/react-declarative-purity/) |
 | **[`type-hygiene`](./skills/type-hygiene/SKILL.md)** | Eradicates TypeScript Record anti-patterns, replacing nested Records with domain value objects and nominal branded types. | [skills/type-hygiene](./skills/type-hygiene/) |
+| **[`loc-fitness`](./skills/loc-fitness/SKILL.md)** | Enforces a hard 60-line cap on hand-written frontend React components to keep components clean, single-purpose, and maintainable. | [skills/loc-fitness](./skills/loc-fitness/) |
+| **[`ai-researcher`](./skills/ai-researcher/SKILL.md)** | Elite AI research paper curation and breakdown. Formulates intuitive, geometrically grounded technical scripts and reviews for advanced AI architectures. | [skills/ai-researcher](./skills/ai-researcher/) |
+| **[`build-trishul-api`](./skills/build-trishul-api/SKILL.md)** | Standardized workflow for creating new domain APIs within the Trishul framework (interfaces, entities, DTOs, mappers, services, controllers, migrations). | [skills/build-trishul-api](./skills/build-trishul-api/) |
+| **[`fix-mutations`](./skills/fix-mutations/SKILL.md)** | Finds and fixes survived PIT mutation tests across Java/Spring modules in batches of 10 to ensure comprehensive test coverage. | [skills/fix-mutations](./skills/fix-mutations/) |
 | **[`trishul-app-sync`](./skills/trishul-app-sync/SKILL.md)** | Synchronizes backend and frontend by building the backend, generating openapi.json, and generating type-safe TypeScript models & Orval hooks. | [skills/trishul-app-sync](./skills/trishul-app-sync/) |
+
+---
+
+## 🎨 Vendor Skills: Emil Kowalski (`emilkowalski/skills`)
+
+This repository also automatically bundles and installs [Emil Kowalski's animation and design engineering skills](https://github.com/emilkowalski/skills) via git submodule (`vendor/emilkowalski-skills`):
+
+| Vendor Skill | Focus |
+| :--- | :--- |
+| **`emil-design-eng`** | Main design engineering skill (animations, easing, UI craft). |
+| **`animate`** | Builds animations from scratch with proper easing curves and durations. |
+| **`mobile-native`** | Mobile touch ergonomics, tap highlights, dynamic viewport units, and notch safe-areas. |
+| **`review-animations`** | Strict animation audit and quality review against design engineering rules. |
+| **`improve-animations`** | Scans UI and produces prioritized, self-contained animation improvement plans. |
+| **`apple-design`** | Apple interface and motion design principles distilled from WWDC. |
+| **`find-animation-opportunities`**| Pinpoints areas that benefit from motion while discouraging gratuitous animations. |
+| **`animation-vocabulary`** | Precise terminology to prompt agents for accurate easing, springs, and motion. |
+| **`ask-sonner`** | Guide to configuring, styling, and troubleshooting Sonner toast components. |
+| **`pick-ui-library`** | Curated guidance on selecting production-grade UI component libraries. |
+| **`prototype`** | Builds multi-variant UI prototypes with an interactive switcher. |
+| **`animate-expo`** / **`write-swift`** | React Native Reanimated and native SwiftUI motion engineering. |
 
 ---
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Universal Multi-Agent Skills Installer
-# Installs skills from mrishab/skills into Claude Code, Antigravity, OpenCode, Codex, Cursor, etc.
+# Installs skills from mrishab/skills and vendor skills (emilkowalski) into Claude, Antigravity, OpenCode, Codex, Cursor, etc.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SKILLS_DIR="${REPO_ROOT}/skills"
+VENDOR_DIR="${REPO_ROOT}/vendor/emilkowalski-skills/skills"
 
 # ANSI Colors
 GREEN="\033[92m"
@@ -24,6 +25,8 @@ SCOPE="global"
 PROJECT_DIR=""
 ACTION="install"
 FORCE=false
+INCLUDE_VENDOR=true
+ONLY_VENDOR=false
 
 usage() {
   cat <<EOF
@@ -39,18 +42,22 @@ ${BOLD}OPTIONS:${RESET}
   -m, --mode <mode>        Install mode: 'symlink' or 'copy' (default: symlink)
   -g, --global             Install globally to user agent directories (default)
   -p, --project <path>     Install locally into a target project repository
+      --no-vendor          Install only personal skills (skip vendor/emilkowalski)
+      --only-vendor        Install only vendor skills (emilkowalski)
       --status             Show current installation status across agents
       --uninstall          Remove installed skills from agent directories
   -f, --force              Overwrite existing targets without prompt
   -h, --help               Display this help message
 
 ${BOLD}EXAMPLES:${RESET}
-  ./scripts/install.sh --agent all                 # Install all skills to all global agents
+  ./scripts/install.sh --agent all                 # Install all personal + vendor skills to all agents
   ./scripts/install.sh --agent claude              # Install all skills to Claude Code
-  ./scripts/install.sh --skill mobile-native-feel  # Install single skill to all agents
-  ./scripts/install.sh --project ~/SourceCode/my-app # Install into project repo
+  ./scripts/install.sh --skill transition-polish   # Install single skill to all agents
+  ./scripts/install.sh --no-vendor                 # Install only personal skills
+  ./scripts/install.sh --only-vendor               # Install only Emil Kowalski's skills
+  ./scripts/install.sh --project ~/SourceCode/app  # Install into project repo
   ./scripts/install.sh --status                    # Check installation status
-  ./scripts/install.sh --uninstall --agent codex   # Uninstall from Codex
+  ./scripts/install.sh --uninstall                 # Clean removal
 EOF
   exit 0
 }
@@ -63,6 +70,8 @@ while [[ $# -gt 0 ]]; do
     -m|--mode) MODE="$2"; shift 2 ;;
     -g|--global) SCOPE="global"; shift ;;
     -p|--project) SCOPE="project"; PROJECT_DIR="$2"; shift 2 ;;
+    --no-vendor) INCLUDE_VENDOR=false; shift ;;
+    --only-vendor) ONLY_VENDOR=true; shift ;;
     --status|--list) ACTION="status"; shift ;;
     --uninstall) ACTION="uninstall"; shift ;;
     -f|--force) FORCE=true; shift ;;
@@ -70,6 +79,16 @@ while [[ $# -gt 0 ]]; do
     *) echo -e "${RED}Unknown option: $1${RESET}" >&2; usage ;;
   esac
 done
+
+# Ensure vendor submodules are initialized
+ensure_vendor() {
+  if [[ "$INCLUDE_VENDOR" == true || "$ONLY_VENDOR" == true ]]; then
+    if [[ ! -d "$VENDOR_DIR" ]]; then
+      echo -e "${CYAN}Initializing vendor submodules...${RESET}"
+      git -C "$REPO_ROOT" submodule update --init --recursive
+    fi
+  fi
+}
 
 # Resolve Agent Directory Paths
 get_agent_dir() {
@@ -100,37 +119,61 @@ get_agent_dir() {
 
 AVAILABLE_AGENTS=("claude" "antigravity" "opencode" "codex" "cursor")
 
-# Get list of skills to process
-get_skills_list() {
-  if [[ ! -d "$SKILLS_DIR" ]]; then
-    echo ""
-    return
+# Build map of skill name -> absolute source path
+get_skills_map() {
+  declare -g -A SKILLS_MAP=()
+  declare -g -a SKILLS_ORDER=()
+
+  # 1. Personal skills
+  if [[ "$ONLY_VENDOR" == false && -d "$SKILLS_DIR" ]]; then
+    for s_path in "$SKILLS_DIR"/*; do
+      if [[ -d "$s_path" && ! "$(basename "$s_path")" =~ ^\. ]]; then
+        local s_name
+        s_name="$(basename "$s_path")"
+        if [[ "$SKILL_TARGET" == "all" || "$SKILL_TARGET" == "$s_name" ]]; then
+          SKILLS_MAP["$s_name"]="$s_path"
+          SKILLS_ORDER+=("$s_name")
+        fi
+      fi
+    done
   fi
-  if [[ "$SKILL_TARGET" == "all" ]]; then
-    find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -exec basename {} \;
-  else
-    if [[ -d "${SKILLS_DIR}/${SKILL_TARGET}" ]]; then
-      echo "$SKILL_TARGET"
-    else
-      echo -e "${RED}Skill '${SKILL_TARGET}' not found in ${SKILLS_DIR}.${RESET}" >&2
-      exit 1
-    fi
+
+  # 2. Vendor skills (Emil Kowalski)
+  if [[ "$INCLUDE_VENDOR" == true && -d "$VENDOR_DIR" ]]; then
+    for v_path in "$VENDOR_DIR"/*; do
+      if [[ -d "$v_path" && ! "$(basename "$v_path")" =~ ^\. ]]; then
+        local v_name
+        v_name="$(basename "$v_path")"
+        if [[ "$SKILL_TARGET" == "all" || "$SKILL_TARGET" == "$v_name" ]]; then
+          SKILLS_MAP["$v_name"]="$v_path"
+          SKILLS_ORDER+=("$v_name")
+        fi
+      fi
+    done
+  fi
+
+  if [[ "$SKILL_TARGET" != "all" && ${#SKILLS_ORDER[@]} -eq 0 ]]; then
+    echo -e "${RED}Skill '${SKILL_TARGET}' not found in skills/ or vendor/.${RESET}" >&2
+    exit 1
   fi
 }
 
-# Ensure minimal wrappers exist for all skills prior to install
+# Ensure minimal wrappers exist for personal skills prior to install
 ensure_wrappers() {
   python3 "${SCRIPT_DIR}/validate.py" --fix >/dev/null 2>&1 || true
 }
 
 # Action: Status
 show_status() {
-  echo -e "\n${BOLD}${BLUE}=== Agent Skills Installation Status ===${RESET}"
-  echo -e "Skills Source: ${BOLD}${SKILLS_DIR}${RESET}\n"
+  ensure_vendor
+  get_skills_map
 
-  local skills=($(get_skills_list))
-  if [[ ${#skills[@]} -eq 0 ]]; then
-    echo -e "${YELLOW}No skills found in ${SKILLS_DIR}.${RESET}\n"
+  echo -e "\n${BOLD}${BLUE}=== Agent Skills Installation Status ===${RESET}"
+  echo -e "Personal Skills: ${BOLD}${SKILLS_DIR}${RESET}"
+  echo -e "Vendor Skills:   ${BOLD}${VENDOR_DIR}${RESET}\n"
+
+  if [[ ${#SKILLS_ORDER[@]} -eq 0 ]]; then
+    echo -e "${YELLOW}No skills found.${RESET}\n"
     return
   fi
 
@@ -144,16 +187,22 @@ show_status() {
       continue
     fi
 
-    for s in "${skills[@]}"; do
+    for s in "${SKILLS_ORDER[@]}"; do
       local dest="${target_dir}/${s}"
+      local origin="${SKILLS_MAP[$s]}"
+      local source_label="personal"
+      if [[ "$origin" =~ vendor ]]; then
+        source_label="vendor:emil"
+      fi
+
       if [[ -L "$dest" ]]; then
         local link_target
         link_target="$(readlink "$dest")"
-        echo -e "  ${GREEN}✔${RESET} ${s} -> [Symlinked] ${link_target}"
+        echo -e "  ${GREEN}✔${RESET} ${s} (${source_label}) -> [Symlinked] ${link_target}"
       elif [[ -d "$dest" ]]; then
-        echo -e "  ${BLUE}●${RESET} ${s} -> [Copied directory]"
+        echo -e "  ${BLUE}●${RESET} ${s} (${source_label}) -> [Copied directory]"
       else
-        echo -e "  ${RED}✖${RESET} ${s} -> [Not installed]"
+        echo -e "  ${RED}✖${RESET} ${s} (${source_label}) -> [Not installed]"
       fi
     done
     echo
@@ -162,6 +211,9 @@ show_status() {
 
 # Action: Uninstall
 do_uninstall() {
+  ensure_vendor
+  get_skills_map
+
   echo -e "\n${BOLD}${YELLOW}=== Uninstalling Agent Skills ===${RESET}\n"
   local target_agents=()
   if [[ "$AGENT" == "all" ]]; then
@@ -169,8 +221,6 @@ do_uninstall() {
   else
     target_agents=("$AGENT")
   fi
-
-  local skills=($(get_skills_list))
 
   for a in "${target_agents[@]}"; do
     local target_dir
@@ -180,7 +230,7 @@ do_uninstall() {
     fi
 
     echo -e "${BOLD}Removing from ${a}...${RESET}"
-    for s in "${skills[@]}"; do
+    for s in "${SKILLS_ORDER[@]}"; do
       local dest="${target_dir}/${s}"
       if [[ -L "$dest" || -d "$dest" ]]; then
         rm -rf "$dest"
@@ -193,11 +243,14 @@ do_uninstall() {
 
 # Action: Install
 do_install() {
+  ensure_vendor
   ensure_wrappers
+  get_skills_map
 
   echo -e "\n${BOLD}${BLUE}=== Installing Skills for AI Agents ===${RESET}"
   echo -e "Mode:  ${BOLD}${MODE}${RESET}"
   echo -e "Scope: ${BOLD}${SCOPE}${RESET}"
+  echo -e "Total skills to install: ${BOLD}${#SKILLS_ORDER[@]}${RESET}"
   if [[ "$SCOPE" == "project" ]]; then
     echo -e "Project: ${BOLD}${PROJECT_DIR}${RESET}"
   fi
@@ -210,28 +263,21 @@ do_install() {
     target_agents=("$AGENT")
   fi
 
-  local skills=($(get_skills_list))
-  if [[ ${#skills[@]} -eq 0 ]]; then
-    echo -e "${YELLOW}No skills found in ${SKILLS_DIR} to install.${RESET}"
-    echo -e "Create a new skill using: ${BOLD}./scripts/new-skill.sh <name>${RESET}"
-    return
-  fi
-
   for a in "${target_agents[@]}"; do
     local target_dir
     target_dir="$(get_agent_dir "$a" "$SCOPE")"
     mkdir -p "$target_dir"
     echo -e "${BOLD}${CYAN}Installing for ${a} (${target_dir})...${RESET}"
 
-    for s in "${skills[@]}"; do
-      local src="${SKILLS_DIR}/${s}"
+    for s in "${SKILLS_ORDER[@]}"; do
+      local src="${SKILLS_MAP[$s]}"
       local dest="${target_dir}/${s}"
 
       if [[ -e "$dest" || -L "$dest" ]]; then
         if [[ "$FORCE" == true ]]; then
           rm -rf "$dest"
         else
-          # If already symlinked to this src, skip
+          # If already symlinked to this exact src, skip
           if [[ -L "$dest" && "$(readlink "$dest")" == "$src" ]]; then
             echo -e "  ${GREEN}✔${RESET} ${s} (Already linked)"
             continue

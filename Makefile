@@ -8,8 +8,14 @@ help: ## Show this help message
 	@echo "Targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install: ## Install all skills to all supported agents (symlink mode)
+install: ## Install all personal and vendor skills to all agents (symlink mode)
 	@./scripts/install.sh --agent all --mode symlink
+
+install-personal: ## Install only personal skills (skip vendor)
+	@./scripts/install.sh --agent all --mode symlink --no-vendor
+
+update-vendor: ## Pull latest upstream commits for vendor submodules
+	@git submodule update --remote --merge
 
 install-claude: ## Install skills to Claude Code
 	@./scripts/install.sh --agent claude --mode symlink

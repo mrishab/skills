@@ -269,9 +269,13 @@ Hover-on should feel snappy; hover-off should feel smooth:
   transform: translateY(0);
   transition: transform 250ms ease-out; /* Slow return to rest */
 }
-.button:hover {
-  transform: translateY(-2px);
-  transition: transform 100ms ease-out; /* Instant reaction */
+
+/* On touch devices, guard hover with pointer media queries to prevent stuck hover states */
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    transform: translateY(-2px);
+    transition: transform 100ms ease-out; /* Instant reaction */
+  }
 }
 ```
 
