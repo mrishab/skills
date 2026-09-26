@@ -1,0 +1,3 @@
+interface:
+  display_name: "Transition Polish"
+  short_description: "Audit and maximize CSS transition coverage across all interactive and stateful UI elements. Use when polishing a..."

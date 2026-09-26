@@ -1,0 +1,3 @@
+interface:
+  display_name: "Theme Purity"
+  short_description: "Audits and fixes hardcoded colors to ensure seamless light/dark theme support and eliminates theme inconsistencies,..."

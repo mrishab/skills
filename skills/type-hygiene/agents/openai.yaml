@@ -1,0 +1,3 @@
+interface:
+  display_name: "Type Hygiene"
+  short_description: "Audits and eliminates TypeScript Record anti-patterns, replacing nested Records with proper domain types. Activate..."
