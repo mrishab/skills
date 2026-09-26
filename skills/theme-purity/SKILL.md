@@ -115,7 +115,7 @@ rg -n "style=\{\{\s*[^}]*(color|background|borderColor)\s*:\s*['\"].*?['\"]"
 
 | Scenario | ❌ Anti-Pattern | ✅ Correct Pattern |
 | :--- | :--- | :--- |
-| **Inline Styles** | `style={{ color: '#ff0000' }}` | `className="text-destructive"` or `style={{ color: 'var(--color-danger)' }}` |
+| **Inline Styles** | `style={{ color: '#ff0000' }}` | `className="text-destructive"` (Use semantic classes; reserve `style={{}}` only for dynamic runtime coordinates/offsets) |
 | **Tailwind Spectral** | `className="bg-gray-900 text-white"` | `className="bg-background text-foreground"` |
 | **Tailwind Arbitrary**| `className="bg-[#1e293b]"` | `className="bg-surface-canvas"` |
 | **CSS-in-JS** | `styled.div\`color: black;\`` | `styled.div\`color: var(--text-primary);\`` |
