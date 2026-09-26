@@ -1,0 +1,32 @@
+{
+  "name": "@mrishab/skills",
+  "version": "1.0.0",
+  "description": "Rishab Manocha's curated personal AI agent skills for Claude, Antigravity, OpenCode, Codex, and modern agent harnesses.",
+  "author": "Rishab Manocha <rishab.manocha@outlook.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrishab/skills.git"
+  },
+  "homepage": "https://github.com/mrishab/skills#readme",
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "antigravity",
+    "claude-code",
+    "opencode",
+    "codex",
+    "cursor",
+    "ai-agents"
+  ],
+  "scripts": {
+    "validate": "./scripts/validate.sh",
+    "install:all": "./scripts/install.sh --agent all",
+    "install:claude": "./scripts/install.sh --agent claude",
+    "install:antigravity": "./scripts/install.sh --agent antigravity",
+    "install:opencode": "./scripts/install.sh --agent opencode",
+    "install:codex": "./scripts/install.sh --agent codex",
+    "status": "./scripts/install.sh --status",
+    "new": "./scripts/new-skill.sh"
+  }
+}

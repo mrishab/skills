@@ -1,0 +1,3 @@
+interface:
+  display_name: "Skill Template"
+  short_description: "A template skill demonstrating the open Agent Skills standard. Use when scaffolding or learning how to write..."

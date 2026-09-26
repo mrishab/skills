@@ -1,0 +1,31 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validate Open Agent Skills Standard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Skill Linter & Validator
+        run: |
+          python3 scripts/validate.py
+
+      - name: Test New Skill Scaffolding
+        run: |
+          ./scripts/new-skill.sh test-ci-skill "Temporary CI skill to test scaffolding workflow"
+          python3 scripts/validate.py
+          rm -rf skills/test-ci-skill
