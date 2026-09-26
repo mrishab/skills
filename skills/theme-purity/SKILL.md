@@ -3,52 +3,34 @@ name: theme-purity
 description: Audits and fixes hardcoded colors to ensure seamless light/dark theme support and eliminates theme inconsistencies, including in third-party widgets. Activate when working on theme support, dark mode issues, or removing hardcoded styles.
 version: 1.0.0
 author: mrishab
-tags:
-  - ui
-  - styling
-  - css
-  - dark-mode
-  - design-system
+tags: [ui, styling, css, dark-mode, design-system]
 ---
 
-# Theme Purity Skill
+# Theme Purity
 
-This skill enforces a strict, semantic theme architecture to ensure applications can support multiple themes (like light/dark modes) flawlessly. It explicitly prohibits hardcoded color values and enforces the use of semantic design tokens across application code, CSS, and third-party widgets.
+Enforces semantic theme architecture for reliable light/dark mode support. Prohibits hardcoded colors and mandates semantic design tokens across application code, CSS, and third-party widgets.
 
-## 🎯 Trigger Criteria
+## Hard Rules
 
-Activate this skill when:
-- Adding or fixing light/dark mode support.
-- Extracting a design system or standardizing UI components.
-- Fixing UI contrast issues, "invisible text", or unstyled scrollbars in dark mode.
-- Integrating or fixing third-party widgets (editors, charts, maps) that do not match the current app theme.
-- The user requests to "fix hardcoded colors" or "audit styles".
+1. **Zero Hardcoded Colors:** No raw hex, rgb, hsl, or literal colors (`white`, `black`, `slate-900`) in application code. All colors must resolve via CSS custom properties (e.g. `var(--color-primary)`).
+2. **Semantic Naming Only:** Tokens must describe *role*, not hue. Use `--color-danger`, not `--color-red`.
+3. **Mandatory `color-scheme`:** Set `color-scheme: light dark;` on `:root` to ensure native controls (scrollbars, form inputs, select dropdowns) render with the correct system theme.
+4. **No Direct Primitive Tokens:** Application code consumes Tier 2 Semantic or Tier 3 Component tokens—never Tier 1 Primitives directly.
+5. **No Visual Inversion Hacks:** Banned: `filter: invert(1) hue-rotate(180deg)`. Dark themes require elevation via surface lightness tinting, off-white text (`#ededed`), and desaturated accents.
 
-## 🛑 Hard Rules & Zero Tolerance
+## 3-Tier Token Structure
 
-1. **NO HARDCODED COLORS:** Hardcoded colors (hex, rgb, hsl, literal named colors like `white` or `black`) are strictly prohibited in application code. Every color must resolve through a CSS custom property (e.g., `var(--color-primary)`).
-2. **USE SEMANTIC NAMING:** Variables must describe *purpose*, not *appearance*. 
-   - ❌ `--color-red-500` or `--color-blue`
-   - ✅ `--color-danger` or `--color-brand`
-3. **MANDATORY `color-scheme`:** The CSS `color-scheme` property must be set on the `:root` element. Without it, native UI elements (scrollbars, form inputs, checkboxes, select dropdowns) will remain light in dark mode.
-4. **NO DIRECT PRIMITIVE ACCESS:** Application code (JSX, HTML, CSS components) must NEVER reference Tier 1 primitive tokens (e.g., `--gray-900`) directly. They must use Tier 2 Semantic or Tier 3 Component tokens.
-5. **DARK MODE IS NOT INVERSION:** Do not use CSS filters like `filter: invert(1) hue-rotate(180deg)`. Dark themes require:
-   - Elevation via lightness tinting, not drop shadows.
-   - Off-white text (e.g., `#ededed`, not `#ffffff`) to avoid irradiation/halation.
-   - Desaturated accent colors for better contrast and reduced eye strain.
+```text
+Tier 1: Primitives   (--slate-900: #0f172a)          -> Theme definitions only
+Tier 2: Semantics    (--surface-canvas: var(--slate-900)) -> Consumed by UI components
+Tier 3: Components   (--button-bg: var(--color-primary)) -> Component-scoped APIs
+```
 
-## 🏗️ 3-Tier Token Architecture
-
-1. **Primitives (Tier 1):** Raw values (e.g., `--slate-900: #0f172a`). Only defined in the base theme.
-2. **Semantics (Tier 2):** Purpose-driven tokens mapped to primitives (e.g., `--surface-canvas: var(--slate-900)`).
-3. **Components (Tier 3):** Component-specific tokens mapped to semantics (e.g., `--button-bg: var(--color-primary)`).
-
-*Application code should only ever touch Tier 2 and Tier 3.*
-
-The standard baseline follows the `shadcn/ui` pattern using semantic CSS variables with separate `:root` and `.dark` blocks:
+Baseline (`shadcn/ui` style):
 ```css
 @layer base {
   :root {
+    color-scheme: light;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -58,6 +40,7 @@ The standard baseline follows the `shadcn/ui` pattern using semantic CSS variabl
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -68,65 +51,49 @@ The standard baseline follows the `shadcn/ui` pattern using semantic CSS variabl
 }
 ```
 
-## 🧩 Third-Party Widget Theming
+## Third-Party Widgets
 
-Third-party widgets often bypass standard CSS inheritance. Handle them specific to their APIs:
-
-| Widget Type | Theming Strategy |
+| Widget | Strategy |
 | :--- | :--- |
-| **CodeMirror** | Accepts CSS variables directly via `EditorView.theme({ "&": { backgroundColor: "var(--background)" } })` |
-| **Monaco Editor** | Requires imperative registration via `monaco.editor.setTheme()`. Map theme tokens explicitly in the setup script. |
-| **SVG Charts (Recharts)** | Accept CSS variables directly in `stroke` and `fill` attributes. |
-| **Canvas Charts (Chart.js)** | Canvas cannot read CSS directly. Use a `getComputedStyle()` bridge to extract resolved CSS variables and pass them to the chart configuration on theme change. |
-| **Maps (Mapbox)** | Require `map.setStyle()` for vector tiles, plus CSS variables for custom DOM overlays. |
+| **CodeMirror** | CSS variables via `EditorView.theme({ "&": { backgroundColor: "var(--background)" } })` |
+| **Monaco Editor** | Imperative registration via `monaco.editor.setTheme()` triggered by theme change |
+| **SVG Charts (Recharts)** | Direct `stroke="var(--color-chart-1)"` and `fill` attributes |
+| **Canvas Charts (Chart.js)** | Extract resolved tokens with `getComputedStyle(document.documentElement).getPropertyValue('--token')` on theme update |
+| **Maps (Mapbox)** | `map.setStyle()` for tiles; CSS variables for DOM popups and overlays |
 
-## 🔄 The Loop
-
-To enforce theme purity, run this workflow:
-
-1. **Scan for Hardcoded Colors:** Use the discovery commands in the Audit section.
-2. **Extract to Theme:** For each hardcoded value, identify its semantic purpose and map it to an existing or new CSS variable in the theme file.
-3. **Replace with Semantic Token:** Update the application code to use the semantic CSS variable or corresponding utility class.
-4. **Verify:** Run the audit commands again to ensure no violations remain.
-5. **Visual Test:** Toggle between light and dark modes to ensure contrast and consistency.
-
-## 🔍 Discovery & Audit Commands
-
-Use these exact shell commands to find theme violations in the codebase:
+## Audit Commands
 
 ```bash
-# 1. Detect hardcoded hex colors
+# 1. Hardcoded hex colors
 rg -n "(?i)#[0-9a-f]{3,8}\b" --glob "!*.{css,scss}"
 
-# 2. Detect rgb/rgba/hsl/hsla functions
+# 2. Hardcoded rgb/hsl functions
 rg -n "\b(rgb|hsl)a?\([^)]+\)" --glob "!*.{css,scss}"
 
-# 3. Detect Tailwind arbitrary color escapes
+# 3. Tailwind arbitrary color escapes
 rg -n "(bg|text|border|fill|stroke)-\[#" 
 
-# 4. Detect hardcoded Tailwind spectral colors (Tier 1 primitive usage)
+# 4. Hardcoded Tailwind spectral classes (Tier 1 primitives)
 rg -n "(bg|text|border|fill|stroke)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]{2,3}"
 
-# 5. Detect inline style color bindings in JSX/TSX
-rg -n "style=\{\{\s*[^}]*(color|background|borderColor)\s*:\s*['\"].*?['\"]" 
+# 5. Inline style color assignments in JSX
+rg -n "style=\{\{\s*[^}]*(color|background|borderColor)\s*:\s*['\"].*?['\"]"
 ```
 
-## ❌ Anti-Patterns vs ✅ Correct Patterns
+## Anti-Patterns
 
-| Scenario | ❌ Anti-Pattern | ✅ Correct Pattern |
-| :--- | :--- | :--- |
-| **Inline Styles** | `style={{ color: '#ff0000' }}` | `className="text-destructive"` (Use semantic classes; reserve `style={{}}` only for dynamic runtime coordinates/offsets) |
-| **Tailwind Spectral** | `className="bg-gray-900 text-white"` | `className="bg-background text-foreground"` |
-| **Tailwind Arbitrary**| `className="bg-[#1e293b]"` | `className="bg-surface-canvas"` |
-| **CSS-in-JS** | `styled.div\`color: black;\`` | `styled.div\`color: var(--text-primary);\`` |
-| **Dark Mode Hack** | `filter: invert(1) hue-rotate(180deg)` | Proper `color-scheme` and semantic tokens |
+| ❌ Anti-Pattern | ✅ Correct Pattern |
+| :--- | :--- |
+| `style={{ color: '#ff0000' }}` | `className="text-destructive"` |
+| `className="bg-gray-900 text-white"` | `className="bg-background text-foreground"` |
+| `className="bg-[#1e293b]"` | `className="bg-surface-canvas"` |
+| `styled.div\`color: black;\`` | `styled.div\`color: var(--text-primary);\`` |
+| `filter: invert(1) hue-rotate(180deg)` | `color-scheme: dark;` + semantic tokens |
 
-## ✅ Verification Checklist
+## Verification Checklist
 
-Before concluding your task, ensure the following pass:
-
-1. [ ] The app specifies `color-scheme: light dark;` on `:root`.
-2. [ ] `rg -n "(?i)#[0-9a-f]{3,8}\b" --glob "!*.{css,scss}"` returns no results in application code.
-3. [ ] `rg -n "(bg|text|border|fill|stroke)-\[#"` returns no results.
-4. [ ] Third-party widgets (charts, editors) correctly respond to dynamic theme toggles without page reloads.
-5. [ ] Native scrollbars and form controls adapt to dark mode correctly.
+- [ ] `color-scheme: light dark;` is set on `:root`
+- [ ] No hex/rgb values in application code (`rg -n "(?i)#[0-9a-f]{3,8}\b" --glob "!*.{css,scss}"` clean)
+- [ ] No arbitrary color classes (`rg -n "(bg|text|border|fill|stroke)-\[#"` clean)
+- [ ] Third-party widgets update without page refresh
+- [ ] Scrollbars and inputs render dark in dark mode

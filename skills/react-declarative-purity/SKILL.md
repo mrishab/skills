@@ -8,207 +8,122 @@ tags: [react, typescript, frontend, dom, architecture]
 
 # React Declarative Purity
 
-**WHEN TO USE:**
-Activate this skill whenever auditing, refactoring, or reviewing React codebases (TypeScript/JavaScript). It is strictly enforced for any React component or hook creation/modification to ensure adherence to React's declarative UI model.
+Enforces React's declarative state-driven UI model (`UI = f(state)`). Prohibits direct DOM manipulation and restricts `useRef` to legitimate non-destructive escape hatches.
 
-## 🧠 The Core Principle: UI = f(state)
+## Prohibited DOM APIs
 
-React owns the DOM. Direct imperative DOM manipulation creates competing sources of truth, breaks Server-Side Rendering (SSR) and React Server Components (RSC), interferes with Concurrent React, and violates component encapsulation.
-
-As per Dan Abramov's Bug-O notation, imperative DOM updates create O(N²) transition paths between N states. React's declarative model guarantees O(1) complexity per state.
-
-**"No Component is a Singleton"**: Using `document.getElementById('sidebar')` assumes only one sidebar will ever exist. This breaks during route transitions, split-pane views, and SSR.
-
-React documentation explicitly calls refs "Escape Hatches": "You should use them sparingly... manually modifying DOM nodes managed by React can lead to inconsistent UI or crashes."
-
-## ⛔ Zero Tolerance / Hard Rules
-
-You must **NEVER** use the following native DOM APIs to mutate or query the DOM inside React code, unless it falls strictly into a legitimate escape hatch category:
+Never use native DOM mutation or query APIs in React components:
 1. `document.querySelector`, `document.getElementById`, `document.getElementsBy*`
 2. `element.classList.add`, `classList.remove`, `classList.toggle`
 3. `document.createElement`, `appendChild`, `removeChild`, `insertBefore`
 4. `element.innerHTML`, `element.outerHTML`
-5. `element.style.<property> = ...`
+5. `element.style.<prop> = ...`
 
-### Legitimate Escape Hatches (When `useRef` is acceptable)
-- Managing focus or selection (e.g., `inputRef.current?.focus()`).
-- Managing scroll position (e.g., `scrollIntoView()`).
-- Measuring element geometry (`getBoundingClientRect`, `ResizeObserver`).
-- Media playback (`video.play()`, `video.pause()`).
-- Integrating non-React third-party libraries (e.g., D3, Leaflet) in isolated leaf containers where React NEVER reconciles the children.
-- Imperative animations (e.g., GSAP, Web Animations API).
+### Permitted `useRef` Escape Hatches
+- Focus & text selection: `inputRef.current?.focus()`
+- Scroll position: `elementRef.current?.scrollIntoView()`
+- Geometry measurements: `getBoundingClientRect()`, `ResizeObserver`
+- Media playback: `videoRef.current?.play()`
+- Unmanaged third-party leaf containers (D3, Leaflet) where React never renders children
+- Imperative animation engines (GSAP, Web Animations API)
 
-## 🔄 The Loop (Discovery & Refactor)
-
-Execute this loop to purify a React codebase:
-
-1. **Search for violations** using the following discovery commands.
-2. **For each violation**, read the file context.
-3. **Refactor** the imperative code to use idiomatic React state, props, refs, or portals.
-4. **Verify** using the checklist.
-
-### Discovery Commands
-
-Run these exact `rg` commands to find anti-patterns across the codebase:
+## Discovery Commands
 
 ```bash
-# Find global DOM queries and document modifications
+# Global DOM queries & mutations
 rg 'document\.(querySelector|getElementById|getElementsBy|createElement|head|body)' --glob '*.{tsx,jsx,ts}'
 
-# Find imperative class list mutations
+# Class list manipulation
 rg 'classList\.(add|remove|toggle|contains)' --glob '*.{tsx,jsx,ts}'
 
-# Find direct DOM structure mutations
+# Imperative DOM tree alterations
 rg '\.(appendChild|removeChild|insertBefore|replaceChild|innerHTML|outerHTML)' --glob '*.{tsx,jsx,ts}'
 
-# Find imperative style mutations
+# Imperative style mutations
 rg '\.style\.[a-zA-Z]+ *=' --glob '*.{tsx,jsx,ts}'
 ```
 
-## ❌ Anti-Patterns vs ✅ Idiomatic React Replacements
+## Anti-Patterns & Replacements
 
-### 1. Global DOM Queries
-**Anti-Pattern:** Using global selectors for state or focus management.
+### 1. Element Selection & Value Access
 ```tsx
-// ❌ BAD: Violates component isolation, breaks if multiple instances exist.
-function Modal() {
-  const openModal = () => {
-    document.getElementById('my-modal').style.display = 'block';
-  }
-}
+// ❌ BAD
+const val = document.getElementById('search-input').value;
+
+// ✅ GOOD: Controlled input
+const [val, setVal] = useState('');
+<input value={val} onChange={(e) => setVal(e.target.value)} />
 ```
 
-**Replacement:** Use state and conditional rendering.
+### 2. Class List Mutation
 ```tsx
-// ✅ GOOD: State-driven rendering
-function Modal() {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <>
-      <button onClick={() => setIsOpen(true)}>Open</button>
-      {isOpen && <div className="modal-dialog">...</div>}
-    </>
-  );
-}
+// ❌ BAD
+element.classList.toggle('active');
+
+// ✅ GOOD: State-driven className
+const [isActive, setIsActive] = useState(false);
+<button className={clsx('btn', isActive && 'active')} onClick={() => setIsActive(!isActive)}>
 ```
 
-### 2. Imperative Class List Mutation
-**Anti-Pattern:** Manually toggling classes.
+### 3. Modals & Appending to Body
 ```tsx
-// ❌ BAD: Imperative mutation bypasses React reconciliation
-function ToggleButton() {
-  const toggle = (e) => {
-    e.currentTarget.classList.toggle('active');
-  }
-  return <button onClick={toggle}>Toggle</button>;
-}
-```
+// ❌ BAD
+const modal = document.createElement('div');
+document.body.appendChild(modal);
 
-**Replacement:** Use state-driven `className` (often with `clsx` or `cn`).
-```tsx
-// ✅ GOOD: Derived from state
-function ToggleButton() {
-  const [isActive, setIsActive] = useState(false);
-  return (
-    <button 
-      className={clsx('btn', isActive && 'active')} 
-      onClick={() => setIsActive(!isActive)}
-    >
-      Toggle
-    </button>
-  );
-}
-```
-
-### 3. Portals vs `appendChild`
-**Anti-Pattern:** Creating and appending elements manually for overlays.
-```tsx
-// ❌ BAD: Creating floating DOM nodes manually
-function Tooltip({ children }) {
-  useEffect(() => {
-    const el = document.createElement('div');
-    document.body.appendChild(el);
-    return () => document.body.removeChild(el);
-  }, []);
-}
-```
-
-**Replacement:** Use `createPortal`.
-```tsx
-// ✅ GOOD: Declarative portals
+// ✅ GOOD: Portals
 import { createPortal } from 'react-dom';
-
-function Tooltip({ children, isOpen }) {
-  if (!isOpen) return null;
-  return createPortal(
-    <div className="tooltip">{children}</div>,
-    document.body // or a specific #portal-root
-  );
-}
+{isOpen && createPortal(<ModalContent onClose={() => setIsOpen(false)} />, document.body)}
 ```
 
-### 4. Injecting Scripts
-**Anti-Pattern:** Appending scripts to the document head manually.
+### 4. Focus Management
 ```tsx
-// ❌ BAD: Imperative script injection
-useEffect(() => {
-  const script = document.createElement('script');
-  script.src = 'https://example.com/widget.js';
-  document.head.appendChild(script);
-}, []);
+// ❌ BAD
+document.querySelector('input[name="email"]').focus();
+
+// ✅ GOOD: Scoped ref
+const inputRef = useRef<HTMLInputElement>(null);
+useEffect(() => { inputRef.current?.focus(); }, []);
+<input ref={inputRef} name="email" />
 ```
 
-**Replacement:** React 19 native `<script>` hoisting, or a robust `useScript` hook.
+### 5. Third-Party Libraries (D3, Charts, Maps)
 ```tsx
-// ✅ GOOD: Declarative script (React 19+)
-function Widget() {
-  return (
-    <>
-      <script src="https://example.com/widget.js" async />
-      <div id="widget-root" />
-    </>
-  );
-}
-```
-
-### 5. Third-Party Lib Integration
-**Anti-Pattern:** Letting React manage the children while D3 mutates them.
-```tsx
-// ❌ BAD: React and D3 fighting over the DOM
+// ❌ BAD: D3 mutates inside React-managed elements
 function Chart({ data }) {
   const ref = useRef(null);
-  useEffect(() => {
-    d3.select(ref.current).selectAll('circle').data(data).enter().append('circle');
-  }, [data]);
-  return <svg ref={ref}><g className="chart-group" /></svg>; // React will try to reconcile this!
+  useEffect(() => { d3.select(ref.current).selectAll('circle').data(data)...; });
+  return <svg ref={ref}><g className="chart" /></svg>;
 }
-```
 
-**Replacement:** Use an isolated leaf node.
-```tsx
-// ✅ GOOD: Isolated leaf container. React renders an empty div, D3 owns the inside.
+// ✅ GOOD: Isolated leaf node. React renders empty wrapper; D3 owns internals
 function Chart({ data }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!ref.current) return;
-    // D3 clears and renders its own DOM tree inside the div
-    const svg = d3.select(ref.current).append('svg'); 
-    // ... setup chart
-    return () => {
-      ref.current.innerHTML = ''; // Cleanup on unmount
-    };
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = '';
+    const svg = d3.select(containerRef.current).append('svg');
+    // ... render chart
+    return () => { if (containerRef.current) containerRef.current.innerHTML = ''; };
   }, [data]);
-  
-  // React NEVER renders children here
-  return <div ref={ref} />;
+  return <div ref={containerRef} />;
 }
 ```
 
-## ✅ Verification Checklist
+### 6. Script Injection
+```tsx
+// ❌ BAD
+const s = document.createElement('script');
+s.src = 'https://example.com/lib.js';
+document.head.appendChild(s);
 
-Before considering the task complete, ensure all these checks pass with zero problematic outputs:
+// ✅ GOOD (React 19+)
+<script src="https://example.com/lib.js" async />
+```
 
-- [ ] `rg 'document\.(querySelector|getElementById)' --glob '*.{tsx,jsx,ts}'` returns no results (except in tests or strictly isolated third-party wrappers).
-- [ ] `rg '\.classList\.' --glob '*.{tsx,jsx,ts}'` returns no results.
-- [ ] `rg '\.(appendChild|innerHTML)' --glob '*.{tsx,jsx,ts}'` returns no results outside of specialized cleanup routines for third-party libs.
-- [ ] Verify that any remaining `useRef` usages are strictly for reading geometry, focusing, media control, or passing to an opaque third-party library, and NEVER for modifying `className` or text content.
+## Verification Checklist
+
+- [ ] `rg 'document\.(querySelector|getElementById)' --glob '*.{tsx,jsx,ts}'` clean (except tests/leaf wrappers)
+- [ ] `rg '\.classList\.' --glob '*.{tsx,jsx,ts}'` returns zero matches
+- [ ] `rg '\.(appendChild|innerHTML)' --glob '*.{tsx,jsx,ts}'` clean (except third-party cleanup)
+- [ ] No `useRef` used for text content or styling mutations
