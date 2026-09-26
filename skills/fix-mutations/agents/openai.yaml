@@ -1,0 +1,3 @@
+interface:
+  display_name: "Fix Mutations"
+  short_description: "Find and fix survived PIT mutation tests. Run after `make install` to identify mutations that survived and fix the..."
