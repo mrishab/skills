@@ -1,0 +1,3 @@
+interface:
+  display_name: "ML Playground Audit"
+  short_description: "Conduct a deep product, UX, and functional audit of client-side machine learning playgrounds. Orchestrates..."
