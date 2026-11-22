@@ -50,6 +50,7 @@ npx skills add mrishab/skills
 | **[`ai-researcher`](./skills/ai-researcher/SKILL.md)** | Elite AI research paper curation and breakdown. Formulates intuitive, geometrically grounded technical scripts and reviews for advanced AI architectures. | [skills/ai-researcher](./skills/ai-researcher/) |
 | **[`build-trishul-api`](./skills/build-trishul-api/SKILL.md)** | Standardized workflow for creating new domain APIs within the Trishul framework (interfaces, entities, DTOs, mappers, services, controllers, migrations). | [skills/build-trishul-api](./skills/build-trishul-api/) |
 | **[`fix-mutations`](./skills/fix-mutations/SKILL.md)** | Finds and fixes survived PIT mutation tests across Java/Spring modules in batches of 10 to ensure comprehensive test coverage. | [skills/fix-mutations](./skills/fix-mutations/) |
+| **[`fix-sonarqube`](./skills/fix-sonarqube/SKILL.md)** | Fetches, triages, and resolves SonarQube issues in Java and Spring Boot projects while preserving core architectural patterns. | [skills/fix-sonarqube](./skills/fix-sonarqube/) |
 | **[`trishul-app-sync`](./skills/trishul-app-sync/SKILL.md)** | Synchronizes backend and frontend by building the backend, generating openapi.json, and generating type-safe TypeScript models & Orval hooks. | [skills/trishul-app-sync](./skills/trishul-app-sync/) |
 
 ---
