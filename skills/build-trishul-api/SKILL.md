@@ -255,6 +255,12 @@ public interface UserMapper {
 ## 4. Implementation (Service Layer)
 
 ### Repository Interface
+
+Trishul enforces cross-schema isolation between admin and customer tenant schemas via `sh.trishul.tenant.persistence.repository.annotation`:
+- **Customer/tenant-scoped repositories (default)**: Repositories without `@AdminRepository` are treated as tenanted by default. Use `@TenantedRepository` when you want to explicitly declare tenant-schema ownership or override inherited/entity-level metadata. Accessing a tenanted repository under the admin tenant context throws `UnauthorizedException` (HTTP 401).
+- **Admin-schema repositories (`@AdminRepository`)**: Annotate repositories or entities stored in the shared admin tenant schema (such as `TenantRepository`, admin metadata, or control-plane tables) with `@AdminRepository`. Accessing an `@AdminRepository` under a customer/schema tenant context throws `UnauthorizedException` (HTTP 401).
+- Both annotations support `@Target({ElementType.TYPE, ElementType.METHOD})`, and explicit repository interface annotations take precedence over entity-level annotations and naming conventions (`Tenant`, `AdminTenant`, `TenantData`).
+
 ```java
 package sh.trishul.user.service.user.service.repository;
 
