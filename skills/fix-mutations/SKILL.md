@@ -6,16 +6,16 @@ version: 1.0.0
 
 # Fix Survived Mutations
 
-Workflow for resolving survived PIT mutation tests in the Trishul monorepo.
+Workflow for resolving survived PIT mutation tests in Java / Spring multi-module projects.
 
 ## Prerequisite
-Run `make install` first so `modules/*/target/pit-reports/mutations.xml` exists.
+Run `make install` (or your project's mutation testing target) first so `modules/*/target/pit-reports/mutations.xml` (or `target/pit-reports/mutations.xml`) exists.
 
 ## The Loop
 
 ### 1. Fetch Next Batch of 10 Mutations
 ```bash
-(echo "<mutations>"; xmllint modules/*/target/pit-reports/mutations.xml | grep -v 'status="KILLED"' | head -n <COUNT> | tail -n 10; echo "</mutations>") | xmllint --format -
+(echo "<mutations>"; grep -E "status=['\"](SURVIVED|NO_COVERAGE)['\"]" modules/*/target/pit-reports/mutations.xml | head -n <COUNT> | tail -n 10; echo "</mutations>") | xmllint --format -
 ```
 *Start with `<COUNT>=10`, then increment by 10 (20, 30, ...) each iteration until no new mutations appear.*
 
@@ -35,15 +35,45 @@ Run `make install` first so `modules/*/target/pit-reports/mutations.xml` exists.
 - Use static imports: `import static org.junit.jupiter.api.Assertions.*`, `import static org.mockito.Mockito.*`.
 - For builder methods returning `this`, assert `assertSame(builder, builder.someMethod(...))`.
 
-### 4. Verify Batch
-```bash
-docker-compose --env-file mvn.env -f docker-compose-bin.yml run --rm --remove-orphans mvn mvn test -pl modules/<module1>,modules/<module2>
+### 4. Advanced Fix Patterns
+
+#### Restoring Thread Interrupted Flag
+```java
+// Source:
+} catch (InterruptedException e) {
+  Thread.currentThread().interrupt();
+  throw new RuntimeException(String.format(ERR_MSG_TASK_EXECUTION, e.getMessage()), e);
+}
+
+// Test: assert thread interrupt status and clear in finally
+@Test
+void testInterrupted() {
+  Thread.currentThread().interrupt();
+  try {
+    RuntimeException exception = assertThrows(RuntimeException.class, () -> service.run());
+    assertTrue(exception.getCause() instanceof InterruptedException);
+    assertTrue(Thread.currentThread().isInterrupted());
+  } finally {
+    Thread.interrupted();
+  }
+}
 ```
 
-### 5. Final Confirmation
+#### Empty Object on Collection/Map Helper Returning Null
+```java
+// Vulnerable: parseParameters returns null on missing/non-object parameters, and caller branches `if (parameters != null)`
+// PIT replaces `return null;` with `Collections.emptyMap()`, and caller produces identical behavior.
+// Fix: Inline parameter parsing or always initialize a collection without null checks to make the code mutation-immune.
+```
+
+### 5. Verify Batch
+```bash
+mvn test -pl modules/<module1>,modules/<module2>
+```
+
+### 6. Final Confirmation
 Run full build and verify zero survivors:
 ```bash
-make install
-xmllint modules/*/target/pit-reports/mutations.xml | grep -v 'status="KILLED"' | grep '<mutation' | wc -l
+grep -h -E "status=['\"](SURVIVED|NO_COVERAGE)['\"]" modules/*/target/pit-reports/mutations.xml | wc -l
 ```
 *Expected: 0*
