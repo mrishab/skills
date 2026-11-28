@@ -24,32 +24,13 @@ Automates the fetching, triaging, and remediation of SonarQube code smells and b
 
 Spring and Java framework architectures often employ specific design idioms that trigger false-positive SonarQube rules. **Never sacrifice architecture to satisfy SonarQube.**
 
-### 🚫 Rules to PRESERVE (DO NOT TOUCH)
-| Rule ID | Pattern | Why It Must Not Be Changed |
-|---|---|---|
-| `java:S3252` | `Entity.ATTR_ID` | MapStruct and annotation processors often require static entity constants to be referenced through concrete classes, not interfaces. |
-| `java:S119` | Generic types (`<T extends Base<T>>`, `<ID, E>`) | Standardized domain hierarchies and polymorphic entity contracts. |
-| `java:S1135` | `// TODO` | Policy strictly forbids deleting TODO comments; only remove when implemented. |
-| `java:S1874` | `@Deprecated` | Preserved for API consumer backward compatibility until major release milestones. |
-| `java:S1602` | Lambda `{ return ...; }` | Disambiguates overloaded functional interfaces (e.g. `CheckedSupplier` vs `CheckedConsumer`). |
-| `java:S3011` | Reflection access | Dynamic reflection utilities, serializers, and entity copiers require reflection access by design. |
-| `java:S2160` | `equals` in DTOs / Models | Base model classes handle reflection-based or identity equality for all subclasses. |
-| `java:S6548` | `INSTANCE` Singleton | Used for immutable constants, mappers, or fallback instances. |
-| `java:S1172` | Unused parameters | Polymorphic interface, framework interceptor, or controller contracts required for framework signatures. |
+Rule categorizations (`preserved_rules`, `conditional_rules`, and `actionable_rules`) are defined in a single canonical file: [rules.json](./references/rules.json) (which can be extended per repository via an optional `.sonar-triage.json` file in the project root). Consult [rules_reference.md](./references/rules_reference.md) for full architectural rationale, conditional criteria, and remediation examples.
 
-### ✅ Rules to FIX (Always Adhere To)
-- `java:S1068` / `java:S1481`: Unused private fields & local variables.
-- `java:S1144`: Unused private methods.
-- `java:S1488`: Immediately returned local variables (inline return).
-- `java:S3776`: Cognitive complexity (extract guard clauses or helper methods).
-- `java:S2142`: `InterruptedException` handling (call `Thread.currentThread().interrupt()`).
-- `java:S5164`: `ThreadLocal` cleanup (call `remove()` in `finally`).
-- `java:S1161`: Missing `@Override` annotation.
-- `java:S1155`: Replace `.size() == 0` / `.size() > 0` with `.isEmpty()` / `!isEmpty()`.
-- `java:S2129`: Replace `new Long(...)` / `new String(...)` with `valueOf` or literals.
-- `java:S125`: Remove dead commented-out code.
+- **Preserved rules**: Intentional framework/API patterns (e.g., `java:S3252`, `java:S119`, `java:S1135`, `java:S1874`, `java:S1602`, `java:S2160`, `java:S6548`)—do not modify.
+- **Conditional rules**: Context-dependent rules (e.g., `java:S3011`, `java:S106`, `java:S1172`)—preserve only in valid contexts such as test fixtures, CLI entrypoints, or polymorphic framework contracts; fix in production services.
+- **Actionable rules**: Genuine code smells, resource leaks, and concurrency bugs (e.g., `java:S2142`, `java:S5164`, `java:S3776`, `java:S1068`/`S1481`)—always remediate.
 
-For complete rationale on every rule, consult [rules_reference.md](./references/rules_reference.md).
+> **Safety Guardrail — No Blind Suppressions**: Never add `@SuppressWarnings(...)`, `// NOSONAR`, or `sonar.exclusions` entries as a shortcut to make SonarQube green. If a rule genuinely cannot be fixed safely without breaking public contracts or framework behavior, document the technical justification and ask the user before suppressing or marking Won't Fix.
 
 ---
 
@@ -76,11 +57,11 @@ curl -s -H "Authorization: Basic ${AUTH}" \
 
 ### Step 2: Analyze & Filter
 1. Review the generated list of issues.
-2. Confirm that none of the candidates match the **Preserved Rules** table above.
-3. If an issue is on an interface or polymorphic method (e.g. `java:S1172`), verify if removing the parameter would break callers or interface contracts.
+2. Confirm that none of the candidates match `preserved_rules` in [rules.json](./references/rules.json) or valid `conditional_rules` contexts.
+3. If an issue is conditional (e.g., `java:S1172`, `java:S3011`, `java:S106`), verify the call site and context before deciding to fix or preserve.
 
 ### Step 3: Implement Targeted Fixes
-1. Open the target file and apply the minimal, clean fix.
+1. Open the target file and apply the minimal, clean fix (never using `@SuppressWarnings(...)`, `// NOSONAR`, or `sonar.exclusions` as a shortcut).
 2. Never introduce fully qualified class names directly in Java code (use imports and static imports).
 3. If modifying exception handling for `InterruptedException`, always restore the interrupt flag:
    ```java
@@ -95,15 +76,23 @@ curl -s -H "Authorization: Basic ${AUTH}" \
 Run compilation and tests for the affected modules:
 
 ```bash
+# Maven
 mvn test-compile -pl <module>
 mvn test -pl <module>
+
+# Gradle fallback
+./gradlew :<module>:test
 ```
 
 ### Step 5: Full Build Verification
 After all actionable fixes are applied, verify the build passes cleanly:
 
 ```bash
+# Maven
 mvn clean verify
+
+# Gradle fallback
+./gradlew check
 ```
 
 ---
