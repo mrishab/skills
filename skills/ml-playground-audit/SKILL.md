@@ -105,6 +105,8 @@ To ensure 360-degree coverage without repetitive overlap, spawn or divide respon
 | **9. Workflow Auditor** | End-to-End Tasks | Full lifecycle: select data → tune model → train → evaluate → compare → export. |
 | **10. Adversarial Specialist** | Boundary & Stress Testing | Extreme inputs, rapid parameter scrubbing, invalid inputs, edge-case recovery. |
 
+> **Runtime Fallback**: If parallel subagent spawning is unavailable in your environment, execute these 10 personas sequentially in a single session—grouping closely related perspectives (e.g., Onboarding + Educator, Math Validator + Adversarial) in deterministic order so all 10 lenses are still covered. If headless browser or DevTools automation is unavailable, run guided interactive checks where possible and record any unverified visual/interaction states in **Section H (Areas Not Fully Tested)** rather than reporting them as observed defects.
+
 ---
 
 ### Phase 3: Workflow Execution & Real Browser Interaction
@@ -135,7 +137,10 @@ Follow the 6-step verification process detailed in [verification_guide.md](./ref
 2. **Determine theoretical formulation**: Recall the canonical mathematical formula.
 3. **Isolate a minimal test case**: Use a tiny synthetic dataset (e.g., 4–10 data points with known coordinates and labels).
 4. **Independently calculate**: Derive the expected value using Python, pen-and-paper, or verified reference libraries.
-5. **Compare**: Compare the playground's output against the ground truth.
+5. **Compare**: Compare the playground's output against the ground truth using objective pass/fail criteria:
+   - **Numeric Tolerance**: Allow a defined tolerance (e.g., `±1e-3` or the UI's displayed rounding precision, such as `±0.5` of the last displayed decimal place) so floating-point or rounding differences are not misclassified as a *Verified Mathematical Defect*.
+   - **Determinism First**: Pin a deterministic random seed—or use a deterministic baseline (such as `k=1` KNN or fixed-centroid K-Means)—before flagging stochastic variance as a defect.
+   - **Reproducible Evidence**: Every reported failure must attach the exact input dataset, full parameter/hyperparameter state, seed (if applicable), and expected vs. observed output.
 6. **Detect Silent Failure Modes**:
    - Correct number, but wrong textual explanation.
    - Correct explanation, but miscalculated value.
