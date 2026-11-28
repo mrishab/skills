@@ -1,0 +1,3 @@
+interface:
+  display_name: "Fix Sonarqube"
+  short_description: "Fetch, triage, and resolve SonarQube issues in Java and Spring Boot projects while preserving core architectural patterns."

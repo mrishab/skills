@@ -1,0 +1,72 @@
+{
+  "preserved_rules": {
+    "java:S3252": {
+      "name": "Static member accessed via subclass",
+      "reason": "MapStruct and annotation processors often require static constants to be referenced through the target concrete class rather than a base interface."
+    },
+    "java:S119": {
+      "name": "Type parameter name convention",
+      "reason": "Generic architectural type parameters (e.g. <T extends AbstractEntity<T>>, <ID, E>) are intentional API contracts."
+    },
+    "java:S1135": {
+      "name": "TODO tag tracking",
+      "reason": "TODO comments must be resolved by genuine implementation, never deleted merely to satisfy SonarQube."
+    },
+    "xml:S1135": {
+      "name": "XML TODO tag tracking",
+      "reason": "TODO comments in XML must be addressed by implementation, never deleted."
+    },
+    "java:S1874": {
+      "name": "Deprecated code usage",
+      "reason": "@Deprecated methods and classes are intentionally maintained for backward compatibility until major release milestones."
+    },
+    "java:S1123": {
+      "name": "Deprecated tag without javadoc",
+      "reason": "Deprecation tags are maintained intentionally for API contract tracking."
+    },
+    "java:S1602": {
+      "name": "Lambda expression block braces",
+      "reason": "In multi-overloaded functional interfaces, explicit braces `{ return ...; }` disambiguate overloaded functional signatures."
+    },
+    "java:S2160": {
+      "name": "Subclass equals override",
+      "reason": "Subclasses extending a base model that handles reflection or identity equality should not add redundant boilerplate overrides."
+    },
+    "java:S6548": {
+      "name": "Singleton pattern",
+      "reason": "Immutable constants, mappers, and fallback singleton instances use this pattern intentionally."
+    }
+  },
+  "conditional_rules": {
+    "java:S3011": {
+      "name": "Reflection accessibility bypass",
+      "condition": "Preserve only in test fixtures or dedicated reflection/serialization utilities; treat as a security/encapsulation issue in Spring Boot production services."
+    },
+    "java:S106": {
+      "name": "Standard output usage",
+      "condition": "Preserve only in CLI entrypoints, standalone tools, or migration runners; replace with a logger (SLF4J) in Spring Boot production services."
+    },
+    "java:S1172": {
+      "name": "Unused method parameter",
+      "condition": "Preserve only when required by a polymorphic interface, framework interceptor, or controller signature; otherwise remove the unused parameter."
+    }
+  },
+  "actionable_rules": {
+    "java:S1068": "Unused private field - safe to remove.",
+    "java:S1481": "Unused local variable - safe to remove.",
+    "java:S1144": "Unused private method - safe to remove.",
+    "java:S1488": "Immediately returned local variable - inline directly into return statement.",
+    "java:S3776": "Cognitive Complexity - refactor deeply nested conditionals into guard clauses or helper methods.",
+    "java:S2142": "InterruptedException handling - call Thread.currentThread().interrupt() before throwing wrapper exception.",
+    "java:S5164": "ThreadLocal cleanup - call ThreadLocal.remove() in a finally block to prevent memory leaks.",
+    "java:S1161": "Missing @Override annotation - add @Override to clarify interface implementation.",
+    "java:S1155": "Collection.isEmpty() - replace size() == 0 or size() > 0 with isEmpty() or !isEmpty().",
+    "java:S2129": "Boxed constructor - replace new Long()/new String() with literals or .valueOf().",
+    "java:S1128": "Unused import - remove redundant import statement.",
+    "java:S1192": "String literal duplicated - extract common constant for repeated strings.",
+    "java:S2259": "Potential NullPointerException - add null guard or Objects.requireNonNull.",
+    "java:S125": "Commented-out code - remove dead commented code blocks.",
+    "java:S1186": "Empty method - add explanatory comment or implementation.",
+    "java:S112": "Generic exceptions - evaluate whether to throw domain-specific exception or if framework wrapper is expected."
+  }
+}
