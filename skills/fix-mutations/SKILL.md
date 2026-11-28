@@ -15,9 +15,11 @@ Run `make install` (or your project's mutation testing target) first so `modules
 
 ### 1. Fetch Next Batch of 10 Mutations
 ```bash
-(echo "<mutations>"; grep -E "status=['\"](SURVIVED|NO_COVERAGE)['\"]" modules/*/target/pit-reports/mutations.xml | head -n <COUNT> | tail -n 10; echo "</mutations>") | xmllint --format -
+(echo "<mutations>"; for f in modules/*/target/pit-reports/mutations.xml target/pit-reports/mutations.xml; do [ -f "$f" ] && xmllint --xpath "//mutation[@status='SURVIVED' or @status='NO_COVERAGE']" "$f" 2>/dev/null; done; echo "</mutations>") \
+  | (echo "<mutations>"; xmllint --xpath "//mutation[position() > <OFFSET> and position() <= <COUNT>]" - 2>/dev/null; echo "</mutations>") \
+  | xmllint --format -
 ```
-*Start with `<COUNT>=10`, then increment by 10 (20, 30, ...) each iteration until no new mutations appear.*
+*Start with `<OFFSET>=0`, `<COUNT>=10`, then increment both by 10 (`10`/`20`, `20`/`30`, ...) each iteration until no new mutations appear.*
 
 ### 2. Common Mutators & Fixes
 
@@ -45,10 +47,12 @@ Run `make install` (or your project's mutation testing target) first so `modules
   throw new RuntimeException(String.format(ERR_MSG_TASK_EXECUTION, e.getMessage()), e);
 }
 
-// Test: assert thread interrupt status and clear in finally
+// Test: mock the blocking dependency to throw InterruptedException (do NOT pre-interrupt the thread,
+// or VoidMethodCallMutator on Thread.currentThread().interrupt() will not be killed), assert the
+// interrupt flag is restored, and clear it in finally so state does not leak to other tests.
 @Test
-void testInterrupted() {
-  Thread.currentThread().interrupt();
+void testInterrupted() throws Exception {
+  when(dependency.call()).thenThrow(new InterruptedException("interrupted"));
   try {
     RuntimeException exception = assertThrows(RuntimeException.class, () -> service.run());
     assertTrue(exception.getCause() instanceof InterruptedException);
@@ -63,7 +67,7 @@ void testInterrupted() {
 ```java
 // Vulnerable: parseParameters returns null on missing/non-object parameters, and caller branches `if (parameters != null)`
 // PIT replaces `return null;` with `Collections.emptyMap()`, and caller produces identical behavior.
-// Fix: Inline parameter parsing or always initialize a collection without null checks to make the code mutation-immune.
+// Fix: Always return an empty collection/map (Effective Java Item 54) from the helper and remove redundant caller null checks—avoid inlining helper logic, which duplicates parsing across callers.
 ```
 
 ### 5. Verify Batch
@@ -72,8 +76,11 @@ mvn test -pl modules/<module1>,modules/<module2>
 ```
 
 ### 6. Final Confirmation
-Run full build and verify zero survivors:
+Re-run the full mutation testing build so `mutations.xml` is regenerated, then verify zero survivors:
 ```bash
-grep -h -E "status=['\"](SURVIVED|NO_COVERAGE)['\"]" modules/*/target/pit-reports/mutations.xml | wc -l
+make install  # or: mvn test-compile org.pitest:pitest-maven:mutationCoverage
+for f in modules/*/target/pit-reports/mutations.xml target/pit-reports/mutations.xml; do
+  [ -f "$f" ] && xmllint --xpath "count(//mutation[@status='SURVIVED' or @status='NO_COVERAGE'])" "$f" 2>/dev/null
+done | awk '{sum += $1} END {print sum+0}'
 ```
 *Expected: 0*
