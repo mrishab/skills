@@ -255,6 +255,15 @@ public interface UserMapper {
 ## 4. Implementation (Service Layer)
 
 ### Repository Interface
+
+Trishul enforces cross-schema isolation between admin and customer tenant schemas via `sh.trishul.tenant.persistence.repository.annotation`:
+- **Customer/tenant-scoped repositories (default)**: Repositories without `@AdminRepository` are treated as tenanted by default. Use `@TenantedRepository` to explicitly declare tenant-schema ownership or override entity-level metadata and naming conventions. Accessing a tenanted repository under the admin tenant context—or with **no active tenant context** (e.g., `@Scheduled` jobs, async/Kafka consumers, startup hooks, or unauthenticated endpoints without explicit context setup)—throws `UnauthorizedException` (HTTP 401).
+- **Admin-schema repositories (`@AdminRepository`)**: Annotate repositories or entities stored in the shared admin tenant schema (such as `TenantRepository`, admin metadata, or control-plane tables) with `@AdminRepository`. Accessing an `@AdminRepository` under a customer/schema tenant context (or without an active admin tenant context) throws `UnauthorizedException` (HTTP 401). Because cross-schema access throws HTTP 401 rather than 403/500, injecting an `@AdminRepository` into a customer-facing service without explicit context management will surface as unexpected auth failures on the client.
+- **Naming conventions, precedence & inherited methods**:
+  - **Naming conventions**: Unannotated repositories/entities matching `Tenant`, `AdminTenant`, or `TenantData` map to the **admin schema**. If a customer-scoped repository or entity includes `Tenant` in its name, explicitly annotate it with `@TenantedRepository` so it does not silently resolve to the admin schema.
+  - **Precedence & conflicts**: Both annotations support `@Target({ElementType.TYPE, ElementType.METHOD})`. Method-level annotations override type-level annotations, and explicit repository interface annotations take precedence over entity-level annotations and naming conventions. Never apply both `@AdminRepository` and `@TenantedRepository` to the same type or method.
+  - **Inherited `JpaRepository` methods**: Annotating only custom methods on a repository does not cover inherited `JpaRepository`/`CrudRepository` methods (`findById`, `save`, `delete`, etc.), which fall back to the type-level annotation or default. Annotate the repository interface itself unless a specific method intentionally overrides it.
+
 ```java
 package sh.trishul.user.service.user.service.repository;
 
@@ -263,8 +272,12 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import sh.trishul.repo.jpa.repository.ExtendedRepository;
+import sh.trishul.tenant.persistence.repository.annotation.TenantedRepository;
+// For admin-schema repositories, import and use @AdminRepository instead:
+// import sh.trishul.tenant.persistence.repository.annotation.AdminRepository;
 import sh.trishul.user.model.User;
 
+@TenantedRepository
 public interface UserRepository
     extends JpaRepository<User, Long>, JpaSpecificationExecutor<User>, ExtendedRepository<Long> {
   @Override
